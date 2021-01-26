@@ -27,28 +27,45 @@ class Router
       $uri = $this->getURI(); //* Присваиваем $uri значение строки запроса   
      foreach($this->routes as $uriPattern => $path){ //* Проверяем наличие такого запроса в routes.php
         
-         if(preg_match("~$uriPattern~", $uri)){ //* Сравниваем $uriPattern и $uri
+         if(preg_match("~$uriPattern~",$uri)){ //* Сравниваем $uriPattern и $uri
 
+            // echo '<br><br>Где ищем (запрос, который набрал пользователь)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$uri;
+            // echo '<br><br>Что ищем (совпадение из правила)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$uriPattern;
+            // echo '<br><br>Кто обрабатывает&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'.$path;
+
+
+            $internalRoute = preg_replace("~$uriPattern~",$path,$uri);
+            
+            
+            // echo '<br><br><br><br>Нужно сформировать:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'. $internalRoute;
            //* Определяем какой контроллер и экшен будут обрабатывать запрос
 
-            $segments = explode('/', $path); //* Разбиваем строку с помощью разделителя на две части. В первой части контоллер, во второй экшен.
+            $segments = explode('/', $internalRoute); //* Разбиваем строку с помощью разделителя на две части. В первой части контоллер, во второй экшен.
             
-            $controllersName = array_shift($segments).'Controller'; //* Извлекаем первый элемент массива с помощью array_shift, и приклеиваем Controller. Получаем productController.
-            $controllersName = ucfirst($controllersName); //* Первую букву делаем заглавной.
+            $controllerName = array_shift($segments).'Controller'; //* Извлекаем первый элемент массива с помощью array_shift, и приклеиваем Controller. Получаем productController.
+            $controllerName = ucfirst($controllerName); //* Первую букву делаем заглавной.
 
             $actionName = 'action' . ucfirst(array_shift($segments));//* Делаем заглавной первую букву в оставшемся элементе (экшене) после удаления array_shift первого элемента (им был контоллер). Перед этим приклеиваем спереди слово action. Получаем action(Имяэкшена) 
             
+            // print_r( $internalRoute);die;
+            // echo '<br><br><br>Контроллер:&nbsp;&nbsp;&nbsp;&nbsp;' . $controllersName;
+            // echo '<br><br><br>Экшен:&nbsp;&nbsp;&nbsp;&nbsp;' . $actionName;
+            $parameters = $segments;
+            
             //* Подключаем класс контроллера
             
-            $controllerFile = ROOT . '/controllers/' . $controllersName . '.php'; //* К переменной ROOT (её значение С:\****\****\\****\\****\site), приклеиваем  путь к папке controllers, имя контроллера  и " .php ". В итоге получаем полный путь.
+            $controllerFile = ROOT . '/controllers/' . $controllerName . '.php'; //* К переменной ROOT (её значение С:\****\****\\****\\****\site), приклеиваем  путь к папке controllers, имя контроллера  и " .php ". В итоге получаем полный путь.
                if(file_exists($controllerFile)){ //* Если такой файл существует,
                    include_once($controllerFile); //* то подключаем его.
                }
 
                //* Создаём объект класса Контроллер
 
-               $controllersObject = new $controllersName;
-               $result = $controllersObject->$actionName(); //* Вызываем у созданного объекта его экшен
+               $controllersObject = new $controllerName;
+               $result = call_user_func_array(array($controllersObject, $actionName), $parameters);
+             //  $result = $controllersObject->$actionName(); //* Вызываем у созданного объекта его экшен
+               
+              
                if($result != null){
                   break; //* Если результат не ноль,(найдены Контроллер и экшен, они существуют), то заканчиваем поиск.
                } 
